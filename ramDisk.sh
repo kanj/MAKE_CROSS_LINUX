@@ -5,19 +5,20 @@ RFS=$1
 # Housekeeping...
 rm -f /tmp/ramdisk.img
 rm -f /tmp/ramdisk.img.gz
- 
+mkdir -pv /mnt/initrd 
 # Ramdisk Constants
 RDSIZE=4000
 BLKSIZE=1024
  
 # Create an empty ramdisk image
 dd if=/dev/zero of=/tmp/ramdisk.img bs=$BLKSIZE count=$RDSIZE
+
  
 # Make it an ext2 mountable file system
 /sbin/mke2fs -F -m 0 -b $BLKSIZE /tmp/ramdisk.img $RDSIZE
- 
+
 # Mount it so that we can populate
-mount /tmp/ramdisk.img /mnt/initrd -t ext2 -o loop=/dev/loop0
+mount  -t ext2 -o loop /tmp/ramdisk.img /mnt/initrd
  
 # Populate the filesystem (subdirectories)
 mkdir /mnt/initrd/bin
@@ -40,9 +41,8 @@ popd
  
 # Grab the necessary dev files
 # prefer to use mknod -m 0600 console c 5 1
-# mknod -m 660 /dev/ram0 b 1 1
+[ -e /dev/ram0 ] || mknod -m 660 /dev/ram0 b 1 1
 cp -a /dev/console /mnt/initrd/dev
-#cp -a /dev/ramdisk /mnt/initrd/dev
 cp -a /dev/ram0 /mnt/initrd/dev
 cp -a /dev/null /mnt/initrd/dev
 cp -a /dev/tty1 /mnt/initrd/dev
@@ -68,6 +68,7 @@ chmod +x /mnt/initrd/linuxrc
  
 # Finish up...
 umount /mnt/initrd
+rmdir /mnt/initrd
 gzip -9 /tmp/ramdisk.img
 
 

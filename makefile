@@ -8,9 +8,7 @@
 #-------------------------------------------------------------------------------------------
 #
 # 	TODO:
-#       Update busyBox target to automatically install as hardlinks and statically compiled.	
-#       Clean up workspace variables	
-#		See ramDisk.sh for additional todo list
+#       See ramDisk.sh for additional todo list
 #	Resources
 #		http://preshing.com/20141119/how-to-build-a-gcc-cross-compiler/
 #		https://gcc.gnu.org/wiki/InstallingGCC
@@ -30,12 +28,13 @@ libVer=2.20
 bbVer=1.24.2
 
 # WorkSpace
-SRCDIR=/usr/src
-INSTALLDIR=$(PWD)/opt/arm
-SYSROOTDIR=$(INSTALLDIR)/sysroot    # Not used
-BUILDDIR=$(PWD)/build
-PROJECT=integrator
-RFS=$(PWD)/rfs/$(PROJECT)			# Is this directory valuable?
+WORKSPACE=/opt/preshing
+SRCDIR=$(WORKSPACE)/src
+BUILDDIR=$(WORKSPACE)/build
+PROJECT=versatileab
+INSTALLDIR=$(WORKSPACE)/$(PROJECT)
+SYSROOTDIR=$(INSTALLDIR)/sysroot    
+RFS=$(WORKSPACE)/rfs/$(PROJECT)
 
 #   Host environment
 PARALLEL=-j4
@@ -48,17 +47,26 @@ TARGETARCH=arm
 KCONFIG=versatile_defconfig
 MACH=versatileab
 
+# Prep 0 - prereqs
+prereqs:
+	sudo apt-get update
+	sudo apt install -y build-essential gawk
+	sudo apt install -y qemu-system-arm qemu-user-static xterm			# prerequisites for milestones
+
 # Prep 1 - Organize workspace
 workSpace:
+	sudo mkdir -pv $(WORKSPACE)
+	sudo chown $(USER):$(USER) -R $(WORKSPACE)
 	mkdir -pv $(SRCDIR)
 	mkdir -pv $(BUILDDIR)
+	mkdir -pv $(INSTALLDIR)
 	mkdir -pv $(SYSROOTDIR)
 	mkdir -pv $(RFS)
 
 # Prep 2 - Get source files
 getSRC:
 	wget -nc -P $(SRCDIR) ftp.gnu.org/gnu/binutils/binutils-$(binVer).tar.bz2
-	wget -nc -P $(SRCDIR) https://www.kernel.org/pub/linux/kernel/v4.x/linux.$(kerVer).tar.xz
+	wget -nc -P $(SRCDIR) https://www.kernel.org/pub/linux/kernel/v4.x/linux-$(kerVer).tar.xz
 	wget -nc -P $(SRCDIR) ftp://gcc.gnu.org/pub/gcc/releases/gcc-$(gccVer)/gcc-$(gccVer).tar.bz2
 	wget -nc -P $(SRCDIR) https://ftp.gnu.org/gnu/glibc/glibc-$(libVer).tar.xz
 	wget -nc -P $(SRCDIR) http://busybox.net/downloads/busybox-$(bbVer).tar.bz2
@@ -175,7 +183,8 @@ busyBox:
 	cd $(BUILDDIR)/busybox-$(bbVer)
 	make distclean
 	make ARCH=$(TARGETCH) CROSS_COMPILE=$(TARGETMACH)- defconfig
-	make ARCH=$(TARGETCH) CROSS_COMPILE=$(TARGETMACH)- menuconfig
+	#make ARCH=$(TARGETCH) CROSS_COMPILE=$(TARGETMACH)- menuconfig
+	sed -i "/CONFIG_STATIC/s/.*/CONFIG_STATIC=y/" .config
 	sed -i 's/\(CONFIG_FEATURE_WTMP\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_FEATURE_UTMP\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
@@ -190,8 +199,8 @@ busyBox:
 # Milestone .   Launch busybox in a cross-chroot
 # Expected results. One gets a command prompt.	
 chrootBusyBox:
-	cp	/usr/bin/qemu-$(TARGETARCH)-static $(RFS)/usr/bin
-	sudo chroot $(RFS) ash
+	cp	/usr/bin/qemu-$(TARGETARCH)-static $(RFS)/usr/bin/qemu-$(TARGETARCH)-static
+	sudo chroot $(RFS) /bin/ash
 	rm 	$(RFS)/usr/bin/qemu-$(TARGETARCH)-static
 
 # Milestone	Launch System	
@@ -200,4 +209,7 @@ checkSystem:
 	sudo ./ramDisk.sh $(RFS) 
 	qemu-system-$(TARGETARCH) -M $(MACH)  -kernel $(BUILDDIR)/linux-$(kerVer)/arch/arm/boot/zImage \
 	-initrd /tmp/ramdisk.img.gz -append "root=/dev/ram0 init=/linuxrc"
+	
+cleanBuild:
+	rm -rd $(BUILDDIR)/*	
 
