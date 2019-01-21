@@ -2,5 +2,5 @@ A makefile to download packages for, configure, build and install a GCC cross-co
 
 
 TODO:
-	Incorporate ramdisk.sh into makefile
 	create a complete bootable image.
+	
