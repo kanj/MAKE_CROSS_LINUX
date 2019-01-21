@@ -1,1 +1,6 @@
 A makefile to download packages for, configure, build and install a GCC cross-compiler. This cross compiler will then compile the Linux Kernel and Busybox to make a system that will boot up in QEMU.
+
+
+TODO:
+	Incorporate ramdisk.sh into makefile
+	create a complete bootable image.

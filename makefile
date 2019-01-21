@@ -157,6 +157,15 @@ gccAll:
 # Milestone Compile simple program
 # Expected results: program compiles.
 helloWorld:
+	cat <<EOF > helloworld.c
+	#include <stdio.h>
+	int main()
+	{
+	// printf() displays the string inside quotation
+	printf("Hello, World!");
+	return 0;
+	}
+	EOF
 	export PATH=$(INSTALLDIR)/bin:$(PATH)
 	$(TARGETMACH)-gcc -static helloworld.c
 	readelf -h a.out
